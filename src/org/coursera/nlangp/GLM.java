@@ -21,11 +21,12 @@ import java.util.Map;
  */
 public class GLM {
 
-	private static final String FEATURE_WEIGHTS = "/home/ratish/project/study/nlp/h4-assignment/tag.model";
+	private static final String FEATURE_WEIGHTS = "/home/ratish/project/study/nlp/h4-assignment/tag.modelgen";
 	private static final String SPACE = " ";
 	private static final String O = "O";
 	private static final String I_GENE = "I-GENE";
 	private static final String STAR = "*";
+	private static final String SEPARATOR = ":";
 	private static final String GENE_DEV_P1_OUT = "/home/ratish/project/study/nlp/nlp-pa1/h1-p/gene_dev.p1.out";
 	private static final String GENE_DEV_P2_OUT = "/home/ratish/project/study/nlp/nlp-pa1/h1-p/gene_dev.p2.out";
 	private static final String GENE_DEV_P3_OUT = "/home/ratish/project/study/nlp/h4-assignment/gene_dev.p3.out";
@@ -87,18 +88,18 @@ public class GLM {
 		try{
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(GENE_DEV_P3_OUT)));
 		List<String> input = new ArrayList<String>();
-//		input.add("Characteristics");
-//		input.add("of");
-//		input.add("lipase");
-//		input.add("activity");
-//		input.add(".");
+		input.add("Characteristics");
+		input.add("of");
+		input.add("lipase");
+		input.add("activity");
+		input.add(".");
 		
 //		BufferedReader br = new BufferedReader(new FileReader(new File(SAMPLE_SENTENCE)));
 //		String readLine = null;
 //		while((readLine = br.readLine())!= null){
 //			input.add(readLine);
 //		}
-		input.add("Atherosclerosis");
+//		input.add("Atherosclerosis");
 		
 		
 		viterbiImplementation(input, bw, vMap);
@@ -123,9 +124,10 @@ public class GLM {
 		s.add(O);
 		for(int a = 0; a< t.size(); a++){
 			for(int b=0; b<t.size(); b++){
-				pi.put(new Kuv(0, t.get(a), t.get(b)), 0d);		
+				pi.put(new Kuv(0, t.get(a), t.get(b)), Double.NEGATIVE_INFINITY);		
 			}
 		}
+		pi.put(new Kuv(0, STAR, STAR), 0d);
 		
 		for(int k=0; k<input.size(); k++){
 			for(int a = 0; a< t.size(); a++){
@@ -149,14 +151,14 @@ public class GLM {
 							continue;
 						}
 						Kuv kuvTemp = new Kuv(k, w, u);
-						double piKMinus1 = 0d;
+						double piKMinus1 = Double.NEGATIVE_INFINITY;
 						if(pi.containsKey(kuvTemp)){
 							piKMinus1 = pi.get(kuvTemp);
 						}
 						
 						String x = input.get(k);
 						String trigramFeature = "TRIGRAM:"+w+":"+u+":"+v;
-						Double trigram = 0d;
+						Double trigram = Double.NEGATIVE_INFINITY;
 						if(vMap.containsKey(trigramFeature)){
 							trigram = vMap.get(trigramFeature);							
 						}
@@ -165,12 +167,37 @@ public class GLM {
 						if(vMap.containsKey(tagFeature)){
 							tag = vMap.get(tagFeature);
 						}
-						double piValue = piKMinus1 + trigram+ tag;
+						
+						Double suffix1 = 0d;
+						Double suffix2 = 0d;
+						Double suffix3 = 0d;
+						int len = x.length();
+						if(len>0){
+							String suffixFeature = "SUFF:"+x.substring(len-1)+SEPARATOR+1+SEPARATOR+v;
+							if(vMap.containsKey(suffixFeature)){
+								suffix1 = vMap.get(suffixFeature);
+							}
+						}
+						if(len >1){
+							String suffixFeature = "SUFF:"+x.substring(len-2)+SEPARATOR+2+SEPARATOR+v;
+							if(vMap.containsKey(suffixFeature)){
+								suffix2 = vMap.get(suffixFeature);
+							}
+						}
+						if(len >2){
+							String suffixFeature = "SUFF:"+x.substring(len-3)+SEPARATOR+3+SEPARATOR+v;
+							if(vMap.containsKey(suffixFeature)){
+								suffix3 = vMap.get(suffixFeature);
+							}
+						}
+						
+						double piValue = piKMinus1 + trigram+ tag +suffix1+suffix2 + suffix3;
 						if(maxValue <= piValue){
 							maxValue = piValue;
 							maxKuv = kuvTemp;
 						}
-						System.out.println("inter piValue "+piValue+" piKMinus1 "+piKMinus1+" "+ trigramFeature + " trigram value "+ trigram + " tag feature "+tagFeature+ " value "+ tag);
+//						System.out.println("inter piValue "+piValue+" piKMinus1 "+piKMinus1+" "+ trigramFeature + " trigram value "+ trigram + " tag feature "+tagFeature+ " value "+ tag);
+//						System.out.println("inter piValue "+piValue+" piKMinus1 "+piKMinus1+" "+ trigramFeature + " trigram value "+ trigram +" "+ tagFeature+" "+tag+ " "+suffixFeature1 + " "+suffix1 +" "+suffixFeature2 + " "+ suffix2 +" "+suffixFeature3 + " "+ suffix3);
 					}
 					pi.put(kuv, maxValue);
 					System.out.println("kuv "+kuv+ "maxValue "+maxValue);
@@ -181,7 +208,7 @@ public class GLM {
 		}
 		
 		int n = input.size();
-		double maxPi = 0d;
+		double maxPi = Double.NEGATIVE_INFINITY;
 		Kuv maxKuv = null;
 		for(int a = 0; a< t.size(); a++){
 			for(int b=0; b<t.size(); b++){
@@ -189,7 +216,7 @@ public class GLM {
 				String v = t.get(b);
 				Kuv kuvTemp = new Kuv(n, u, v);
 				
-				Double kuvValue = 0d;
+				Double kuvValue = Double.NEGATIVE_INFINITY;
 				if(pi.containsKey(kuvTemp)){
 					kuvValue = pi.get(kuvTemp);
 				}
