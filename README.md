@@ -1,0 +1,4 @@
+AveragedPerceptron
+==================
+
+AveragedPerceptron implementation
