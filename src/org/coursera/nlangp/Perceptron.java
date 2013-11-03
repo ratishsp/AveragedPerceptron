@@ -37,9 +37,13 @@ public class Perceptron {
 	private static final String O = "O";
 	private static final String I_GENE = "I-GENE";
 	private static final String STAR = "*";
+	private static final String GENE_MODEL_GEN_AVG = "/home/ratish/project/study/nlp/h4-assignment/tag.modelgenavg";
+	private static final String GENE_MODEL_GEN_AVG_OPTIM = "/home/ratish/project/study/nlp/h4-assignment/tag.modelgenavgoptim";
+	private Map<String, String> wordClusters;
 	public static void main(String[] args) {
 		Perceptron perceptron = new Perceptron();
-		perceptron.execute();
+		perceptron.loadWordClusters();
+		perceptron.train();
 		Map<String,Double> vMap = new HashMap<String,Double>();
 		perceptron.loadV(vMap);
 		perceptron.decode(vMap);
@@ -55,6 +59,25 @@ public class Perceptron {
 //		}
 	}
 	
+	private Map<String, String> loadWordClusters() {
+		String filepath = "/home/ratish/Downloads/word-clusters";
+		wordClusters = new HashMap<String, String>();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(filepath));
+			String readLine = null;
+			while((readLine = br.readLine())!= null){
+				String [] args = readLine.split("\t");
+				wordClusters.put(args[1], args[0]);
+			}
+			br.close();
+			return wordClusters;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+	}
+
 /*	private void sampleSentence(){
 		Map<String,Double> vMap = new HashMap<String,Double>();
 		List<String> input = new ArrayList<String>();
@@ -125,11 +148,14 @@ public class Perceptron {
 		
 	}*/
 	
-	private void execute(){
+	private void train(){
 		try{
 			Map<String,Double> vMap = new HashMap<String,Double>();
+//			Map<String,Double> vMapAvg = new HashMap<String,Double>();
+			Map<String,AvgValue> vMapAvg2 = new HashMap<String,AvgValue>();
 			BufferedWriter bw = new BufferedWriter(new FileWriter(new File(GENE_MODEL_GEN)));
-//			int l = 0;
+			BufferedWriter bw2 = new BufferedWriter(new FileWriter(new File(GENE_MODEL_GEN_AVG_OPTIM)));
+			int l = 0;
 			for(int i =0; i<6; i++){
 				//iterate through the training set
 				//for each sentence
@@ -141,31 +167,37 @@ public class Perceptron {
 					BufferedReader br = new BufferedReader(new FileReader(new File(GENE_TRAIN)));
 					String readLine = null;
 					List<String> input = new ArrayList<String>();
-					List<String> outputTrigram = null;
+					List<String> tags = null;
 //					List<String> outputTags = null;
 	//				List<String> tags = null;
 					List<String> goldStandardTags = new ArrayList<String>();
 					while((readLine = br.readLine())!= null){
+						l++;
+//						System.out.println("readline "+readLine);
 						if(readLine.length()!=0){
 							input.add(readLine.split(SPACE)[0]);
 							goldStandardTags.add(readLine.split(SPACE)[1]);
 						}else{
 //							l++;
-							outputTrigram = viterbiImplementation(input, vMap);
+							tags = viterbiImplementation(input, vMap);
 //							outputTags = viterbiImplementation(input, vMap, "tag");
-							Map<String, Double> fxizitrigram = new HashMap<String, Double>();
-							getFValue(input, outputTrigram, fxizitrigram);
-							getFValue(input, outputTrigram, fxizitrigram,"tag");
-							getFValue(input, outputTrigram, fxizitrigram, "", "");
-							Map<String, Double> fxiyitrigram = new HashMap<String,Double>();
-							getFValue(input, goldStandardTags, fxiyitrigram);
-							getFValue(input, goldStandardTags, fxiyitrigram, "tag");
-							getFValue(input, goldStandardTags, fxiyitrigram, "", "");
+							Map<String, Double> fxizi = new HashMap<String, Double>();
+							getFValue(input, tags, fxizi);
+							getFValue(input, tags, fxizi,"tag");
+							getFValue(input, tags, fxizi, "", "suff");
+							getFValue(input, tags, fxizi, "", "", "pref");
+							Map<String, Double> fxiyi = new HashMap<String,Double>();
+							getFValue(input, goldStandardTags, fxiyi);
+							getFValue(input, goldStandardTags, fxiyi, "tag");
+							getFValue(input, goldStandardTags, fxiyi, "", "suff");
+							getFValue(input, goldStandardTags, fxiyi, "", "", "pref");
 //							System.out.println(l-1);
 //							System.out.println("v[trigram:o:o:o] "+vMap.get("TRIGRAM:O:O:O"));
 //							System.out.println("b[trigram:o:o:o] "+fxizitrigram.get("TRIGRAM:O:O:O"));
 //							System.out.println("g[trigram:o:o:o] "+fxiyitrigram.get("TRIGRAM:O:O:O"));
-							updateV(vMap, fxiyitrigram, fxizitrigram);
+							updateV(vMap, fxiyi, fxizi);
+//							updateVmapAvg(vMap,vMapAvg);
+							updateVmapAvg(vMap,vMapAvg2, fxiyi,fxizi);
 //							System.out.println("v[trigram:o:o:o] "+vMap.get("TRIGRAM:O:O:O"));
 //							Map<String, Double> fxizitags = getFValue(input, outputTags, "tag");
 //							Map<String, Double> fxiyitags = getFValue(input, goldStandardTags, "tag");
@@ -176,31 +208,35 @@ public class Perceptron {
 							goldStandardTags = new ArrayList<String>();						
 						}
 					}
-					outputTrigram = viterbiImplementation(input, vMap);
+					tags = viterbiImplementation(input, vMap);
 //					outputTags = viterbiImplementation(input, vMap, "tag");
-					Map<String, Double> fxizitrigram = new HashMap<String, Double>();
+					Map<String, Double> fxizi = new HashMap<String, Double>();
 					
-					getFValue(input, outputTrigram, fxizitrigram);
-					getFValue(input, outputTrigram, fxizitrigram, "tag");
-					getFValue(input, outputTrigram, fxizitrigram, "", "");
-					Map<String, Double> fxiyitrigram = new HashMap<String,Double>();
-					getFValue(input, goldStandardTags, fxiyitrigram);
-					getFValue(input, goldStandardTags, fxiyitrigram, "tag");
-					getFValue(input, goldStandardTags, fxiyitrigram, "", "");
+					getFValue(input, tags, fxizi);
+					getFValue(input, tags, fxizi, "tag");
+					getFValue(input, tags, fxizi, "", "suff");
+					getFValue(input, tags, fxizi, "", "", "pref");
+					Map<String, Double> fxiyi = new HashMap<String,Double>();
+					getFValue(input, goldStandardTags, fxiyi);
+					getFValue(input, goldStandardTags, fxiyi, "tag");
+					getFValue(input, goldStandardTags, fxiyi, "", "suff");
+					getFValue(input, goldStandardTags, fxiyi, "", "","pref");
 //					System.out.println("v[trigram:o:o:o] "+vMap.get("TRIGRAM:O:O:O"));
 //					System.out.println("b[trigram:o:o:o] "+fxizitrigram.get("TRIGRAM:O:O:O"));
 //					System.out.println("g[trigram:o:o:o] "+fxiyitrigram.get("TRIGRAM:O:O:O"));					
-					updateV(vMap, fxiyitrigram, fxizitrigram);
+					updateV(vMap, fxiyi, fxizi);
 //					System.out.println("v[trigram:o:o:o] "+vMap.get("TRIGRAM:O:O:O"));
 //					Map<String, Double> fxizitags = getFValue(input, outputTags, "tag");
 //					Map<String, Double> fxiyitags = getFValue(input, goldStandardTags, "tag");
 //					updateV(vMap, fxiyitags, fxizitags);
-					
+//					updateVmapAvg(vMap,vMapAvg);
+					updateVmapAvg(vMap,vMapAvg2, fxiyi,fxizi);
 					br.close();
-//					System.out.println("fxiyi "+fxiyitrigram);
-//					System.out.println("fxizi "+fxizitrigram);
+//					System.out.println("fxiyi "+fxiyi);
+//					System.out.println("fxizi "+fxizi);
 //					System.out.println("vMap "+vMap);
 					
+					System.out.println("i "+i);
 			
 			}
 			Set<Map.Entry<String, Double>> entrySet = vMap.entrySet();
@@ -208,11 +244,65 @@ public class Perceptron {
 				bw.write(entry.getKey()+SPACE+entry.getValue());
 				bw.newLine();
 			}
+			
+			Set<Map.Entry<String, AvgValue>>entrySet2 = vMapAvg2.entrySet();
+			for (Map.Entry<String, AvgValue> entry : entrySet2) {
+				AvgValue value = entry.getValue();
+				bw2.write(entry.getKey()+SPACE+(value.getD()/value.getCount()));
+				bw2.newLine();
+			}
+			
 			bw.close();
+			bw2.close();
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+
+
+	private void updateVmapAvg(Map<String, Double> vMap,
+			Map<String, AvgValue> vMapAvg, Map<String, Double> fxiyi,
+			Map<String, Double> fxizi) {
+		Set<Map.Entry<String, Double>> entrySet = fxiyi.entrySet();
+		Map<String,Object> changed = new HashMap<String, Object>();
+		for(Map.Entry<String, Double> entry:entrySet){
+			String key = entry.getKey();
+			changed.put(key, new Object());
+		}
+		
+		entrySet = fxizi.entrySet();
+		for(Map.Entry<String, Double> entry:entrySet){
+			String key = entry.getKey();
+			changed.put(key, new Object());
+		}
+		
+		Set<Map.Entry<String, Object>> changedSet =  changed.entrySet();
+		for(Map.Entry<String, Object> changedSetEntry: changedSet){
+			String key = changedSetEntry.getKey();
+			if(vMapAvg.containsKey(key)){
+				AvgValue avg = vMapAvg.get(key);
+				Double sum = avg.getD() + vMap.get(key);
+				int count = avg.getCount() +1;
+				vMapAvg.put(key, new AvgValue(sum,count));
+			}else{
+				vMapAvg.put(key, new AvgValue(vMap.get(key), 1));
+			}
+		}
+		
+	}
+
+	private void updateVmapAvg(Map<String, Double> vMap, Map<String, Double> vMapAvg) {
+		Set<Map.Entry<String, Double>> entrySet = vMap.entrySet();
+		for(Map.Entry<String, Double> entry:entrySet){
+			String key = entry.getKey();
+			Double value = entry.getValue();
+			if(vMapAvg.containsKey(key)){
+				vMapAvg.put(key, value+vMapAvg.get(key));
+			}else{
+				vMapAvg.put(key, value);
+			}
 		}
 	}
 
@@ -247,7 +337,7 @@ public class Perceptron {
 	
 	private void loadV(Map<String, Double> vMap) {
 		try {
-			BufferedReader br = new BufferedReader(new FileReader(new File(GENE_MODEL_GEN)));
+			BufferedReader br = new BufferedReader(new FileReader(new File(GENE_MODEL_GEN_AVG_OPTIM)));
 			String readLine = null;
 			while((readLine = br.readLine())!= null){
 				String [] args = readLine.split(SPACE);
@@ -343,6 +433,51 @@ public class Perceptron {
 			}
 		}
 		return f;
+	}
+	
+	private Map<String, Double> getFValue(List<String> input, List<String> tags, Map<String, Double> f,String feature, String feature2, String prefbitstring){
+		for(int i=0; i< input.size(); i++){
+			String x = input.get(i);
+			String bitString = wordClusters.get(x);
+			String tag = tags.get(i);
+			setOrIncrement(f, bitString, tag,8, "CURR");
+			setOrIncrement(f, bitString, tag,12, "CURR");
+			setOrIncrement(f, bitString, tag,16, "CURR");
+			setOrIncrement(f, bitString, tag,20, "CURR");
+		}
+		
+		for(int i=0; i< input.size()-1; i++){
+			String prev = input.get(i);
+			String bitString = wordClusters.get(prev);
+			String tag = tags.get(i+1);
+			
+			setOrIncrement(f, bitString, tag,8, "PREV");
+			setOrIncrement(f, bitString, tag,12, "PREV");
+			setOrIncrement(f, bitString, tag,16, "PREV");
+			setOrIncrement(f, bitString, tag,20, "PREV");	
+		}
+		
+		for(int i=0; i< input.size()-1; i++){
+			String next = input.get(i+1);
+			String bitString = wordClusters.get(next);
+			String tag = tags.get(i);
+
+			setOrIncrement(f, bitString, tag,8, "NEXT");
+			setOrIncrement(f, bitString, tag,12, "NEXT");
+			setOrIncrement(f, bitString, tag,16, "NEXT");
+			setOrIncrement(f, bitString, tag,20, "NEXT");
+		}
+		
+		return f;
+	
+	}
+
+	private void setOrIncrement(Map<String, Double> f, String bitString,
+			String tag, int prefLength, String prefType) {
+		if(bitString!= null && bitString.length()>prefLength){
+			String key=getPrefixFeature(tag, bitString, prefLength, prefType);
+			setOrIncrement(f, key);
+		}
 	}
 
 	private void setOrIncrement(Map<String, Double> f, String key) {
@@ -440,12 +575,63 @@ public class Perceptron {
 							}
 						}
 						
-						double piValue = piKMinus1 + trigram + tag + suffix1 + suffix2 + suffix3;
+						Double tagPref8CurrWordValue = 0d;
+						Double tagPref12CurrWordValue = 0d;
+						Double tagPref16CurrWordValue = 0d;
+						Double tagPref20CurrWordValue = 0d;
+						Double tagPref8PrevWordValue = 0d;
+						Double tagPref12PrevWordValue = 0d;
+						Double tagPref16PrevWordValue = 0d;
+						Double tagPref20PrevWordValue = 0d;
+						Double tagPref8NextWordValue = 0d;
+						Double tagPref12NextWordValue = 0d;
+						Double tagPref16NextWordValue = 0d;
+						Double tagPref20NextWordValue = 0d;
+						if(wordClusters.containsKey(x)){
+							String bitString = wordClusters.get(x);
+							tagPref8CurrWordValue =  tagPrefixWord(vMap, w, bitString,8,"CURR");
+							tagPref12CurrWordValue = tagPrefixWord(vMap, w, bitString,12,"CURR");
+							tagPref16CurrWordValue =  tagPrefixWord(vMap, w, bitString,16,"CURR");
+							tagPref20CurrWordValue = tagPrefixWord(vMap, w, bitString,20,"CURR");
+							
+//							System.out.println("x "+x+" bitstring "+bitString+ " 8 "+tagPref8CurrWordValue+ " 12 "+tagPref12CurrWordValue+ " 16 "+tagPref16CurrWordValue+ " 20 "+tagPref20CurrWordValue);
+						}
+						
+						if(k>0){
+							String xMinus1 = input.get(k-1);
+							if(wordClusters.containsKey(xMinus1)){
+								String bitString = wordClusters.get(xMinus1);
+								tagPref8PrevWordValue =  tagPrefixWord(vMap, w, bitString,8,"PREV");
+								tagPref12PrevWordValue = tagPrefixWord(vMap, w, bitString,12,"PREV");
+								tagPref16PrevWordValue =  tagPrefixWord(vMap, w, bitString,16,"PREV");
+								tagPref20PrevWordValue = tagPrefixWord(vMap, w, bitString,20,"PREV");
+//								System.out.println("prev "+xMinus1+" bitstring "+bitString+ " 8 "+tagPref8PrevWordValue+ " 12 "+tagPref12PrevWordValue+ " 16 "+tagPref16PrevWordValue+ " 20 "+tagPref20PrevWordValue);
+							}
+							
+						}
+						
+						if(k<input.size()-1){
+							String xPlus1 = input.get(k+1);
+							if(wordClusters.containsKey(xPlus1)){
+								String bitString = wordClusters.get(xPlus1);
+								tagPref8NextWordValue =  tagPrefixWord(vMap, w, bitString,8,"NEXT");
+								tagPref12NextWordValue = tagPrefixWord(vMap, w, bitString,12,"NEXT");
+								tagPref16NextWordValue =  tagPrefixWord(vMap, w, bitString,16,"NEXT");
+								tagPref20NextWordValue = tagPrefixWord(vMap, w, bitString,20,"NEXT");
+//								System.out.println("next "+xPlus1+" bitstring "+bitString+ " 8 "+tagPref8NextWordValue+ " 12 "+tagPref12NextWordValue+ " 16 "+tagPref16NextWordValue+ " 20 "+tagPref20NextWordValue);
+							}
+						}
+						
+						double piValue = piKMinus1 + trigram + tag + suffix1 + suffix2 + suffix3
+								+ tagPref8CurrWordValue+tagPref12CurrWordValue+tagPref16CurrWordValue+tagPref20CurrWordValue
+								+ tagPref8PrevWordValue+tagPref12PrevWordValue+tagPref16PrevWordValue+tagPref20PrevWordValue
+								+ tagPref8NextWordValue+tagPref12NextWordValue+tagPref16NextWordValue+tagPref20NextWordValue;
 						if(maxValue <= piValue){
 							maxValue = piValue;
 							maxKuv = kuvTemp;
 						}
 //						System.out.println("inter piValue "+piValue+" piKMinus1 "+piKMinus1+" "+ trigramFeature + " trigram value "+ trigram +" "+ tagFeature+" "+tag+ " "+suffixFeature1 + " "+suffix1 +" "+suffixFeature2 + " "+ suffix2 +" "+suffixFeature3 + " "+ suffix3);
+//						System.out.println("");
 					}
 					pi.put(kuv, maxValue);
 					bp.put(kuv, maxKuv);
@@ -498,6 +684,23 @@ public class Perceptron {
 		}
 		
 		return tags;
+	}
+
+	private Double tagPrefixWord(Map<String, Double> vMap, String w,
+			String bitString, int prefixLength, String wordType) {
+		Double tagPrefWordValue=0d;
+		if(bitString.length()>=prefixLength){
+			String tagPrefCurrWord = getPrefixFeature(w, bitString, prefixLength, wordType);
+			if(vMap.containsKey(tagPrefCurrWord)){
+				tagPrefWordValue = vMap.get(tagPrefCurrWord);
+			}
+		}
+		return tagPrefWordValue;
+	}
+
+	private String getPrefixFeature(String w, String bitString,
+			int prefixLength, String wordType) {
+		return "TAGPREF"+prefixLength+wordType+SEPARATOR+w+SEPARATOR+bitString.substring(0,prefixLength);
 	}
 
 	private String suffix3(String v, String x, int len) {
@@ -611,4 +814,36 @@ public class Perceptron {
 		return tags;
 	}
 
+	
+	class AvgValue{
+		private Double d;
+		private int count;
+		
+		public AvgValue() {
+			// TODO Auto-generated constructor stub
+		}
+		
+		
+		public AvgValue(Double d, int count) {
+			super();
+			this.d = d;
+			this.count = count;
+		}
+
+
+		public Double getD() {
+			return d;
+		}
+		public void setD(Double d) {
+			this.d = d;
+		}
+		public int getCount() {
+			return count;
+		}
+		public void setCount(int count) {
+			this.count = count;
+		}
+		
+		
+	}
 }
