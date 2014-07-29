@@ -21,11 +21,12 @@ import java.util.Set;
  * @author ratish
  *
  */
-public class Perceptron {
+public class PerceptronBigram {
 	private static final String SUFF_FEATURE = "SUFF:";
 	private static final String TAG_FEATURE = "TAG:";
 	private static final String POS_FEATURE = "POS:";
-	private static final String TRIGRAM_FEATURE = "TRIGRAM:";
+//	private static final String TRIGRAM_FEATURE = "TRIGRAM:";
+	private static final String BIGRAM_FEATURE = "BIGRAM:";
 	private static final String STOP = "STOP";
 	private static final String SEPARATOR = ":";
 //	private static final String GENE_TRAIN = "/home/ratish/project/study/nlp/h4-assignment/gene.train";
@@ -35,9 +36,11 @@ public class Perceptron {
 	
 	private static final String TAB = "\t";
 	private static final String DEV_OUT_FILE = "/home/arya/Downloads/ICON 2013/hindi/hindiDevel.BIO.features.out";
+	private static final String DEV_OUT_FILE_SAMPLE = "/home/arya/Downloads/ICON 2013/hindi/hindiDevel.BIO.features.out.sample";
 //	private static final String SAMPLE_SENTENCE = "/home/ratish/project/study/nlp/h4-assignment/sampleSentence";
 //	private static final String GENE_DEV = "/home/ratish/project/study/nlp/h4-assignment/gene.dev";
 	private static final String DEV_FILE = "/home/arya/Downloads/ICON 2013/hindi/hindiDevel.BIO.features";
+	private static final String DEV_FILE_SAMPLE = "/home/arya/Downloads/ICON 2013/hindi/hindiDevel.BIO.features.sample";
 //	private static final String O = "O";
 //	private static final String I_GENE = "I-GENE";
 	private static final String STAR = "*";
@@ -69,7 +72,7 @@ public class Perceptron {
 	private static final String YEAR="YEAR";	
 	private Map<String, String> wordClusters;
 	public static void main(String[] args) {
-		Perceptron perceptron = new Perceptron();
+		PerceptronBigram perceptron = new PerceptronBigram();
 		perceptron.loadWordClusters();
 		perceptron.train();
 		Map<String,Double> vMap = new HashMap<String,Double>();
@@ -435,14 +438,14 @@ public class Perceptron {
 //		Map<String, Double> f = new HashMap<String, Double>();
 		List<String> updatedListTags = new ArrayList<String>();
 		updatedListTags.add(STAR);
-		updatedListTags.add(STAR);
+//		updatedListTags.add(STAR);
 		updatedListTags.addAll(tags);
 		updatedListTags.add(STOP);
-		for(int i=2; i< updatedListTags.size(); i++){
-			String w = updatedListTags.get(i-2);
-			String u = updatedListTags.get(i-1);
+		for(int i=1; i< updatedListTags.size(); i++){
+			String w = updatedListTags.get(i-1);
+//			String u = updatedListTags.get(i-1);
 			String v = updatedListTags.get(i);
-			String key = TRIGRAM_FEATURE+w+SEPARATOR+u+SEPARATOR+v;
+			String key = BIGRAM_FEATURE+w+SEPARATOR+v;
 			setOrIncrement(f, key);
 			
 		}
@@ -606,36 +609,37 @@ public class Perceptron {
 		}
 		
 		for(int k=0; k<input.size(); k++){
-			for(int a = 0; a< t.size(); a++){
+//			for(int a = 0; a< t.size(); a++){
 				for(int b=0; b<s.size(); b++){
-					String u = t.get(a);
+//					String u = t.get(a);
 					String v = s.get(b);
-					Kuv kuv = new Kuv(k+1, u, v);
+					Kuv kuv = new Kuv(k+1, v, v);
 					
 					Double maxValue = Double.NEGATIVE_INFINITY;
 					Kuv maxKuv = null;
 					for(int l=0; l< t.size(); l++){
 						String w = t.get(l);
-						if(k==0 && !(u.equals(STAR) && w.equals(STAR))){
+						if(k==0 && !(w.equals(STAR))){
 							continue;
 						}
 						
-						if(k==1 && u.equals(STAR)){
+						/*if(k==1 && u.equals(STAR)){
+							continue;
+						}*/
+						if(k>0 && w.equals(STAR)){
 							continue;
 						}
-						if(k>1 && (u.equals(STAR) || w.equals(STAR))){
-							continue;
-						}
-						Kuv kuvTemp = new Kuv(k, w, u);
+						Kuv kuvTemp = new Kuv(k, w, w);
 						double piKMinus1 = Double.NEGATIVE_INFINITY;
 						if(pi.containsKey(kuvTemp)){
 							piKMinus1 = pi.get(kuvTemp);
 						}
 						
-						String trigramFeature =TRIGRAM_FEATURE+w+SEPARATOR+u+SEPARATOR+v;
-						Double trigram = 0d;
-						if(vMap.containsKey(trigramFeature)){
-							trigram = vMap.get(trigramFeature);							
+//						String trigramFeature =TRIGRAM_FEATURE+w+SEPARATOR+u+SEPARATOR+v;
+						String bigramFeature =BIGRAM_FEATURE+w+SEPARATOR+v;
+						Double bigram = 0d;
+						if(vMap.containsKey(bigramFeature)){
+							bigram = vMap.get(bigramFeature);							
 						}
 						String x = input.get(k);
 						String tagFeature = TAG_FEATURE+x+SEPARATOR+v;
@@ -691,11 +695,11 @@ public class Perceptron {
 						Double tagPref20NextWordValue = 0d;
 						if(wordClusters.containsKey(x)){
 							String bitString = wordClusters.get(x);
-							tagPref4CurrWordValue =  tagPrefixWord(vMap, w, bitString,4,"CURR");
-							tagPref8CurrWordValue =  tagPrefixWord(vMap, w, bitString,8,"CURR");
-							tagPref12CurrWordValue = tagPrefixWord(vMap, w, bitString,12,"CURR");
-							tagPref16CurrWordValue =  tagPrefixWord(vMap, w, bitString,16,"CURR");
-							tagPref20CurrWordValue = tagPrefixWord(vMap, w, bitString,20,"CURR");
+							tagPref4CurrWordValue =  tagPrefixWord(vMap, v, bitString,4,"CURR");
+							tagPref8CurrWordValue =  tagPrefixWord(vMap, v, bitString,8,"CURR");
+							tagPref12CurrWordValue = tagPrefixWord(vMap, v, bitString,12,"CURR");
+							tagPref16CurrWordValue =  tagPrefixWord(vMap, v, bitString,16,"CURR");
+							tagPref20CurrWordValue = tagPrefixWord(vMap, v, bitString,20,"CURR");
 							
 //							System.out.println("x "+x+" bitstring "+bitString+ " 8 "+tagPref8CurrWordValue+ " 12 "+tagPref12CurrWordValue+ " 16 "+tagPref16CurrWordValue+ " 20 "+tagPref20CurrWordValue);
 						}
@@ -704,11 +708,11 @@ public class Perceptron {
 							String xMinus1 = input.get(k-1);
 							if(wordClusters.containsKey(xMinus1)){
 								String bitString = wordClusters.get(xMinus1);
-								tagPref4PrevWordValue =  tagPrefixWord(vMap, w, bitString,4,"PREV");
-								tagPref8PrevWordValue =  tagPrefixWord(vMap, w, bitString,8,"PREV");
-								tagPref12PrevWordValue = tagPrefixWord(vMap, w, bitString,12,"PREV");
-								tagPref16PrevWordValue =  tagPrefixWord(vMap, w, bitString,16,"PREV");
-								tagPref20PrevWordValue = tagPrefixWord(vMap, w, bitString,20,"PREV");
+								tagPref4PrevWordValue =  tagPrefixWord(vMap, v, bitString,4,"PREV");
+								tagPref8PrevWordValue =  tagPrefixWord(vMap, v, bitString,8,"PREV");
+								tagPref12PrevWordValue = tagPrefixWord(vMap, v, bitString,12,"PREV");
+								tagPref16PrevWordValue =  tagPrefixWord(vMap, v, bitString,16,"PREV");
+								tagPref20PrevWordValue = tagPrefixWord(vMap, v, bitString,20,"PREV");
 //								System.out.println("prev "+xMinus1+" bitstring "+bitString+ " 8 "+tagPref8PrevWordValue+ " 12 "+tagPref12PrevWordValue+ " 16 "+tagPref16PrevWordValue+ " 20 "+tagPref20PrevWordValue);
 							}
 							
@@ -718,16 +722,16 @@ public class Perceptron {
 							String xPlus1 = input.get(k+1);
 							if(wordClusters.containsKey(xPlus1)){
 								String bitString = wordClusters.get(xPlus1);
-								tagPref4NextWordValue =  tagPrefixWord(vMap, w, bitString,4,"NEXT");
-								tagPref8NextWordValue =  tagPrefixWord(vMap, w, bitString,8,"NEXT");
-								tagPref12NextWordValue = tagPrefixWord(vMap, w, bitString,12,"NEXT");
-								tagPref16NextWordValue =  tagPrefixWord(vMap, w, bitString,16,"NEXT");
-								tagPref20NextWordValue = tagPrefixWord(vMap, w, bitString,20,"NEXT");
+								tagPref4NextWordValue =  tagPrefixWord(vMap, v, bitString,4,"NEXT");
+								tagPref8NextWordValue =  tagPrefixWord(vMap, v, bitString,8,"NEXT");
+								tagPref12NextWordValue = tagPrefixWord(vMap, v, bitString,12,"NEXT");
+								tagPref16NextWordValue =  tagPrefixWord(vMap, v, bitString,16,"NEXT");
+								tagPref20NextWordValue = tagPrefixWord(vMap, v, bitString,20,"NEXT");
 //								System.out.println("next "+xPlus1+" bitstring "+bitString+ " 8 "+tagPref8NextWordValue+ " 12 "+tagPref12NextWordValue+ " 16 "+tagPref16NextWordValue+ " 20 "+tagPref20NextWordValue);
 							}
 						}
 						
-						double piValue = piKMinus1 + trigram + tag + suffix1 + suffix2 + suffix3
+						double piValue = piKMinus1 + bigram + tag + suffix1 + suffix2 + suffix3
 								+ tagPref4CurrWordValue + tagPref8CurrWordValue+tagPref12CurrWordValue+tagPref16CurrWordValue+tagPref20CurrWordValue
 								+ tagPref4PrevWordValue + tagPref8PrevWordValue+tagPref12PrevWordValue+tagPref16PrevWordValue+tagPref20PrevWordValue
 								+ tagPref4NextWordValue + tagPref8NextWordValue+tagPref12NextWordValue+tagPref16NextWordValue+tagPref20NextWordValue;
@@ -743,34 +747,34 @@ public class Perceptron {
 //					System.out.println("kuv "+kuv+ "maxValue "+maxValue);
 //					System.out.println("kuv "+kuv+ "maxKuv "+maxKuv);
 				}
-			}
+//			}
 		}
 		
 		int n = input.size();
 		double maxPi = Double.NEGATIVE_INFINITY; 
 		Kuv maxKuv = null;
-		for(int a = 0; a< t.size(); a++){
+//		for(int a = 0; a< t.size(); a++){
 			for(int b=0; b<t.size(); b++){
-				String u = t.get(a);
+//				String u = t.get(a);
 				String v = t.get(b);
-				Kuv kuvTemp = new Kuv(n, u, v);
+				Kuv kuvTemp = new Kuv(n, v, v);
 				
 				Double kuvValue = Double.NEGATIVE_INFINITY;
 				if(pi.containsKey(kuvTemp)){
 					kuvValue = pi.get(kuvTemp);
 				}
 				
-				String trigramFeatureStop =TRIGRAM_FEATURE+ u+SEPARATOR+v+":STOP";
-				Double trigramStop = 0d;
-				if(vMap.containsKey(trigramFeatureStop)){
-					trigramStop = vMap.get(trigramFeatureStop);
+				String bigramFeatureStop =BIGRAM_FEATURE+ v+":STOP";
+				Double bigramStop = 0d;
+				if(vMap.containsKey(bigramFeatureStop)){
+					bigramStop = vMap.get(bigramFeatureStop);
 				}
-				double value = kuvValue + trigramStop;
+				double value = kuvValue + bigramStop;
 				if(maxPi <= value){
 					maxPi = value;
 					maxKuv = kuvTemp;
 				}
-			}
+//			}
 		}
 //		System.out.println("highestKuv "+maxKuv + " maxPi "+maxPi);
 		List<Kuv> kuvs = new ArrayList<Kuv>();
@@ -791,11 +795,11 @@ public class Perceptron {
 		return tags;
 	}
 
-	private Double tagPrefixWord(Map<String, Double> vMap, String w,
+	private Double tagPrefixWord(Map<String, Double> vMap, String v,
 			String bitString, int prefixLength, String wordType) {
 		Double tagPrefWordValue=0d;
 		if(bitString.length()>=prefixLength){
-			String tagPrefCurrWord = getPrefixFeature(w, bitString, prefixLength, wordType);
+			String tagPrefCurrWord = getPrefixFeature(v, bitString, prefixLength, wordType);
 			if(vMap.containsKey(tagPrefCurrWord)){
 				tagPrefWordValue = vMap.get(tagPrefCurrWord);
 			}
