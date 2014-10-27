@@ -547,34 +547,6 @@ public class PerceptronBigramNoWordVecNoPOS {
 	private List<String> viterbiImplementation(List<String> input,Map<String, Double> vMap) throws IOException {
 		Map<Kuv, Double> pi = new HashMap<Kuv, Double>();
 		Map<Kuv, Kuv> bp = new HashMap<Kuv, Kuv>();
-		List<String> t = new ArrayList<String>();
-		t.add(STAR);
-//		t.add(I_GENE);
-		t.add(ARTIFACT);
-		t.add(COUNT);
-		t.add(DATE);
-		t.add(DAY);
-		t.add(DISEASE);
-		t.add(DISTANCE);
-		t.add(ENTERTAINMENT);
-		t.add(FACILITIES);
-		t.add(LIVTHINGS);
-		t.add(LOCATION);
-		t.add(LOCOMOTIVE);
-		t.add(MATERIALS);
-		t.add(MONEY);
-		t.add(MONTH);
-		t.add(O);
-		t.add(ORGANIZATION);
-		t.add(PERIOD);
-		t.add(PERSON);
-		t.add(PLANTS);
-		t.add(QUANTITY);
-		t.add(SDAY);
-		t.add(TIME);
-		t.add(YEAR);
-
-		
 		List<String> s = new ArrayList<String>();
 		s.add(ARTIFACT);
 		s.add(COUNT);
@@ -599,6 +571,36 @@ public class PerceptronBigramNoWordVecNoPOS {
 		s.add(SDAY);
 		s.add(TIME);
 		s.add(YEAR);
+
+		
+		List<String> t = new ArrayList<String>();
+		t.add(STAR);
+		t.addAll(s);
+		/*t.add(ARTIFACT);
+		t.add(COUNT);
+		t.add(DATE);
+		t.add(DAY);
+		t.add(DISEASE);
+		t.add(DISTANCE);
+		t.add(ENTERTAINMENT);
+		t.add(FACILITIES);
+		t.add(LIVTHINGS);
+		t.add(LOCATION);
+		t.add(LOCOMOTIVE);
+		t.add(MATERIALS);
+		t.add(MONEY);
+		t.add(MONTH);
+		t.add(O);
+		t.add(ORGANIZATION);
+		t.add(PERIOD);
+		t.add(PERSON);
+		t.add(PLANTS);
+		t.add(QUANTITY);
+		t.add(SDAY);
+		t.add(TIME);
+		t.add(YEAR);*/
+
+		
 
 		for(int a = 0; a< t.size(); a++){
 			for(int b=0; b<t.size(); b++){
